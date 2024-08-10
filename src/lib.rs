@@ -16,7 +16,7 @@ macro_rules! info_limit {
             }
         }
 
-        if COUNT.fetch_add(1, Ordering::Relaxed) <= $max_per_time {
+        if COUNT.fetch_add(1, Ordering::Relaxed) < $max_per_time {
             log::info!($($arg)+);
         } else {
             let now = Instant::now();
