@@ -62,6 +62,7 @@ impl RateLimiter {
 #[macro_export]
 macro_rules! error_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Error, $($arg)+));
@@ -71,6 +72,7 @@ macro_rules! error_limit {
 #[macro_export]
 macro_rules! warn_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Warn, $($arg)+));
@@ -80,6 +82,7 @@ macro_rules! warn_limit {
 #[macro_export]
 macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Info, $($arg)+));
@@ -89,6 +92,7 @@ macro_rules! info_limit {
 #[macro_export]
 macro_rules! debug_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Debug, $($arg)+));
@@ -98,6 +102,7 @@ macro_rules! debug_limit {
 #[macro_export]
 macro_rules! trace_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Trace, $($arg)+));
@@ -106,12 +111,11 @@ macro_rules! trace_limit {
 
 #[cfg(test)]
 mod tests {
+    use super::info_limit;
     use std::thread;
     use std::time::Duration;
 
     use simple_logger::SimpleLogger;
-
-    use super::*;
 
     #[test]
     fn it_works() {
