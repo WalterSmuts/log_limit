@@ -48,7 +48,7 @@ impl RateLimiter {
             // Safe to unwap here because we always populate with Some above if there is a none and
             // we never initialize with a none.
             if now.duration_since(maybe_timestamp.unwrap()) > self.period {
-                let filtered_log_count = self.count.swap(0, Ordering::Relaxed);
+                let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time;
                 log::warn!("Ignored {filtered_log_count} logs since {maybe_timestamp:?}. Starting again...");
                 log();
                 *maybe_timestamp = Some(now);
