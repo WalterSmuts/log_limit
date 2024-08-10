@@ -88,9 +88,10 @@ mod tests {
             "Logging with inner string value {a}"
         );
 
-        for _ in 0..10 {
+        for i in 0..10 {
+            log::debug!("{i}");
             info_limit!(3, Duration::from_millis(5), "Logging on repeat");
-            thread::sleep(Duration::from_millis(1))
+            thread::sleep(Duration::from_millis(1));
         }
         panic!()
     }
