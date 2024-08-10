@@ -49,7 +49,7 @@ impl RateLimiter {
             // we never initialize with a none.
             if now.duration_since(maybe_timestamp.unwrap()) > self.period {
                 let filtered_log_count = self.count.swap(0, Ordering::Relaxed);
-                log::warn!("Ignored {filtered_log_count} since {maybe_timestamp:?}");
+                log::warn!("Ignored {filtered_log_count} logs since {maybe_timestamp:?}. Starting again...");
                 log();
                 *maybe_timestamp = Some(now);
             }
