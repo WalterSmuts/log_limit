@@ -79,14 +79,22 @@ mod tests {
     fn it_works() {
         SimpleLogger::new().init().unwrap();
         let a = 1;
-        info_limit!(10, Duration::from_secs(60), "Logging {}", 10);
-        info_limit!(1, Duration::from_secs(60), "Logging");
+        info_limit!(1, Duration::from_millis(60), "Logging with nothing");
+        info_limit!(
+            10,
+            Duration::from_millis(60),
+            "Logging with arg value {}",
+            10
+        );
+        info_limit!(
+            1,
+            Duration::from_millis(60),
+            "Logging with inner string value {a}"
+        );
+
         for _ in 0..10 {
-            info_limit!(1, Duration::from_secs(60), "Logging on repeat{a}");
-        }
-        for _ in 0..10 {
-            info_limit!(1, Duration::from_secs(5), "Logging on repeat{a}");
-            thread::sleep(Duration::from_secs(1))
+            info_limit!(3, Duration::from_millis(5), "Logging on repeat");
+            thread::sleep(Duration::from_millis(1))
         }
         panic!()
     }
