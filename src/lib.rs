@@ -26,7 +26,7 @@ macro_rules! info_limit {
             // we never initialize with a none.
             if now.duration_since(maybe_timestamp.unwrap()) > $period {
                 let filtered_log_count = COUNT.swap(0, Ordering::Relaxed);
-                log::info!("Ignored {filtered_log_count} since {maybe_timestamp:?}");
+                log::warn!("Ignored {filtered_log_count} since {maybe_timestamp:?}");
                 log::info!($($arg)+);
                 *maybe_timestamp = Some(now);
             }
