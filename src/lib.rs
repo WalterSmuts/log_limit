@@ -16,8 +16,16 @@ macro_rules! info_limit {
             }
         }
 
-        if COUNT.fetch_add(1, Ordering::Relaxed) < $max_per_time {
+        let count = COUNT.fetch_add(1, Ordering::Relaxed);
+        if count < $max_per_time {
             log::info!($($arg)+);
+            if count == $max_per_time - 1 {
+                let maybe_timestamp = TIMESTAMP.lock().unwrap();
+                // Safe to unwap here because we always populate with Some above if there is a none and
+                // we never initialize with a none.
+                let timestamp = maybe_timestamp.unwrap();
+                log::warn!("Starting to ignore the previous log until {:?}!", timestamp + $period);
+            }
         } else {
             let now = Instant::now();
             // Safe to unwrap here because we will never panic *touch wood*
