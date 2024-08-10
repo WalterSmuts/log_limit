@@ -41,7 +41,9 @@ mod tests {
 
     #[test]
     fn it_works() {
+        let a = 10;
         info_limit!(10, Duration::from_secs(60), "Logging {}", 10);
         info_limit!(1, Duration::from_secs(60), "Logging");
+        info_limit!(1, Duration::from_secs(60), "Logging {a}");
     }
 }
