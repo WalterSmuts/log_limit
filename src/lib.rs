@@ -32,14 +32,7 @@ impl RateLimiter {
         if count < max_per_time {
             log();
             if count == max_per_time - 1 {
-                let maybe_timestamp = self.timestamp.lock().unwrap();
-                // Safe to unwap here because we always populate with Some above if there is a none and
-                // we never initialize with a none.
-                let timestamp = maybe_timestamp.unwrap();
-                log::warn!(
-                    "Starting to ignore the previous log until {:?}!",
-                    timestamp + self.period
-                );
+                log::warn!("Starting to ignore the previous log for {:?}", self.period);
             }
         } else {
             let now = Instant::now();
@@ -49,7 +42,10 @@ impl RateLimiter {
             // we never initialize with a none.
             if now.duration_since(maybe_timestamp.unwrap()) > self.period {
                 let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time;
-                log::warn!("Ignored {filtered_log_count} logs since {maybe_timestamp:?}. Starting again...");
+                log::warn!(
+                    "Ignored {filtered_log_count} logs since more than {:?} ago. Starting again...",
+                    self.period
+                );
                 log();
                 *maybe_timestamp = Some(now);
             }
