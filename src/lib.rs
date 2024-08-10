@@ -37,13 +37,19 @@ macro_rules! info_limit {
 
 #[cfg(test)]
 mod tests {
+    use simple_logger::SimpleLogger;
+
     use super::*;
 
     #[test]
     fn it_works() {
-        let a = 10;
+        SimpleLogger::new().init().unwrap();
+        let a = 1;
         info_limit!(10, Duration::from_secs(60), "Logging {}", 10);
         info_limit!(1, Duration::from_secs(60), "Logging");
-        info_limit!(1, Duration::from_secs(60), "Logging {a}");
+        for _ in 0..10 {
+            info_limit!(1, Duration::from_secs(60), "Logging on repeat{a}");
+        }
+        panic!()
     }
 }
