@@ -58,12 +58,49 @@ impl RateLimiter {
     }
 }
 
+// TODO: Write a macro to dedup this
+#[macro_export]
+macro_rules! error_limit {
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        RATE_LIMITER.ensure_timestamp_init();
+        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Error, $($arg)+));
+    }};
+}
+
+#[macro_export]
+macro_rules! warn_limit {
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        RATE_LIMITER.ensure_timestamp_init();
+        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Warn, $($arg)+));
+    }};
+}
+
 #[macro_export]
 macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::info!($($arg)+));
+        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Info, $($arg)+));
+    }};
+}
+
+#[macro_export]
+macro_rules! debug_limit {
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        RATE_LIMITER.ensure_timestamp_init();
+        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Debug, $($arg)+));
+    }};
+}
+
+#[macro_export]
+macro_rules! trace_limit {
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        RATE_LIMITER.ensure_timestamp_init();
+        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Trace, $($arg)+));
     }};
 }
 
