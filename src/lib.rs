@@ -1,9 +1,12 @@
+#![doc = include_str!("../README.md")]
+
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 
+#[doc(hidden)]
 pub struct RateLimiter {
     count: AtomicUsize,
     timestamp: Mutex<Option<Instant>>,
