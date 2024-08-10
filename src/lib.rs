@@ -10,15 +10,13 @@ use std::time::Instant;
 pub struct RateLimiter {
     count: AtomicUsize,
     timestamp: Mutex<Option<Instant>>,
-    period: Duration,
 }
 
 impl RateLimiter {
-    pub const fn new(period: Duration) -> Self {
+    pub const fn new() -> Self {
         Self {
             count: AtomicUsize::new(0),
             timestamp: Mutex::new(None),
-            period,
         }
     }
 
@@ -30,14 +28,14 @@ impl RateLimiter {
         }
     }
 
-    pub fn log_maybe(&self, max_per_time: usize, log: impl Fn()) {
+    pub fn log_maybe(&self, period: Duration, max_per_time: usize, log: impl Fn()) {
         let count = self.count.fetch_add(1, Ordering::Relaxed);
         if count < max_per_time {
             log();
             if count == max_per_time - 1 {
                 log::warn!(
                     "Starting to ignore the previous log for less than {:?}",
-                    self.period
+                    period
                 );
             }
         } else {
@@ -46,12 +44,12 @@ impl RateLimiter {
             let mut maybe_timestamp = self.timestamp.lock().unwrap();
             // Safe to unwap here because we always populate with Some above if there is a none and
             // we never initialize with a none.
-            if now.duration_since(maybe_timestamp.unwrap()) > self.period {
+            if now.duration_since(maybe_timestamp.unwrap()) > period {
                 let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time;
                 if filtered_log_count > 0 {
                     log::warn!(
                     "Ignored {filtered_log_count} logs since more than {:?} ago. Starting again...",
-                    self.period
+                    period
                 );
                 }
                 log();
@@ -66,9 +64,9 @@ impl RateLimiter {
 macro_rules! error_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        static RATE_LIMITER: RateLimiter = RateLimiter::new();
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Error, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Error, $($arg)+));
     }};
 }
 
@@ -76,9 +74,9 @@ macro_rules! error_limit {
 macro_rules! warn_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        static RATE_LIMITER: RateLimiter = RateLimiter::new();
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Warn, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Warn, $($arg)+));
     }};
 }
 
@@ -86,9 +84,9 @@ macro_rules! warn_limit {
 macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        static RATE_LIMITER: RateLimiter = RateLimiter::new();
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Info, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Info, $($arg)+));
     }};
 }
 
@@ -96,9 +94,9 @@ macro_rules! info_limit {
 macro_rules! debug_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        static RATE_LIMITER: RateLimiter = RateLimiter::new();
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Debug, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Debug, $($arg)+));
     }};
 }
 
@@ -106,9 +104,9 @@ macro_rules! debug_limit {
 macro_rules! trace_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new($period);
+        static RATE_LIMITER: RateLimiter = RateLimiter::new();
         RATE_LIMITER.ensure_timestamp_init();
-        RATE_LIMITER.log_maybe($max_per_time, || log::log!(log::Level::Trace, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Trace, $($arg)+));
     }};
 }
 
