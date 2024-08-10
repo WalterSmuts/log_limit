@@ -32,7 +32,10 @@ impl RateLimiter {
         if count < max_per_time {
             log();
             if count == max_per_time - 1 {
-                log::warn!("Starting to ignore the previous log for {:?}", self.period);
+                log::warn!(
+                    "Starting to ignore the previous log for less than {:?}",
+                    self.period
+                );
             }
         } else {
             let now = Instant::now();
