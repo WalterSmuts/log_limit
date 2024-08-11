@@ -2,10 +2,16 @@
 name = "log_limit"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
+description = "A rate limiting logging crate"
+documentation = "https://docs.rs/log_limit/"
+repository = "https://github.com/WalterSmuts/log_limit"
+keywords = ["macro", "rate", "limit", "utility", "logging"]
+categories = ["Development Tools", "Rust Patterns", "Command-line interface", "Configuration", "Web programming"]
+readme = "README.md"
 
 [dependencies]
 log = "0.4.22"
+
 [dev-dependencies]
 simple_logger = "5.0.0"
