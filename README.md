@@ -1,6 +1,11 @@
 # log_limit
 
-A rate limiting logging crate.
+A rate limiting logging crate. Simply wraps the [log] crate with logic to
+ignore writing logs if that specific log-line is called too often. This is
+contorlled by a threshold and a period. If the theshold is reached the log is
+ignored for the rest of the period. Warnings are logged to inform the user that
+the log is being ignored when the threshold is hit and when the next period
+starts, providing the number of logs that were ignored.
 
 ### Example:
 ```rust
@@ -48,3 +53,5 @@ for i in 0..10 {
 * Figure out why my macro API looks different to the logging one? What is the target?
 * Add more documentation
 * Figure out the right API
+
+[log]: https://docs.rs/log/latest/log/
