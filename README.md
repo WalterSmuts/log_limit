@@ -5,7 +5,7 @@ A rate limiting logging crate. Pronounced "log log lo...".
 ### Example:
 ```rust
 use std::thread;
-use time::Duration;
+use std::time::Duration;
 
 use logloglo::info_limit;
 use simple_logger::SimpleLogger;

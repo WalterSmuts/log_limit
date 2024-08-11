@@ -140,6 +140,14 @@ mod tests {
             info_limit!(3, Duration::from_millis(5), "Logging on repeat");
             thread::sleep(Duration::from_millis(1));
         }
-        panic!()
+    }
+
+    #[test]
+    fn all_variants_compile() {
+        error_limit!(1, Duration::from_millis(1), "");
+        warn_limit!(1, Duration::from_millis(1), "");
+        info_limit!(1, Duration::from_millis(1), "");
+        debug_limit!(1, Duration::from_millis(1), "");
+        trace_limit!(1, Duration::from_millis(1), "");
     }
 }
