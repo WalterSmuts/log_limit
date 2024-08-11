@@ -2,6 +2,7 @@
 
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
@@ -9,22 +10,20 @@ use std::time::Instant;
 #[doc(hidden)]
 pub struct RateLimiter {
     count: AtomicUsize,
-    timestamp: Mutex<Option<Instant>>,
+    timestamp: LazyLock<Mutex<Instant>>,
+}
+
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RateLimiter {
     pub const fn new() -> Self {
         Self {
             count: AtomicUsize::new(0),
-            timestamp: Mutex::new(None),
-        }
-    }
-
-    // TODO: Find a better way to initialize this
-    pub fn ensure_timestamp_init(&self) {
-        let mut maybe_timestamp = self.timestamp.lock().unwrap();
-        if maybe_timestamp.is_none() {
-            *maybe_timestamp = Some(Instant::now());
+            timestamp: LazyLock::new(|| Instant::now().into()),
         }
     }
 
@@ -40,11 +39,8 @@ impl RateLimiter {
             }
         } else {
             let now = Instant::now();
-            // Safe to unwrap here because we will never panic *touch wood*
-            let mut maybe_timestamp = self.timestamp.lock().unwrap();
-            // Safe to unwap here because we always populate with Some above if there is a none and
-            // we never initialize with a none.
-            if now.duration_since(maybe_timestamp.unwrap()) > period {
+            let mut timestamp = self.timestamp.lock().unwrap();
+            if now.duration_since(*timestamp) > period {
                 let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time;
                 if filtered_log_count > 0 {
                     log::warn!(
@@ -53,7 +49,7 @@ impl RateLimiter {
                 );
                 }
                 log();
-                *maybe_timestamp = Some(now);
+                *timestamp = now;
             }
         }
     }
@@ -65,7 +61,6 @@ macro_rules! error_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new();
-        RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Error, $($arg)+));
     }};
 }
@@ -75,7 +70,6 @@ macro_rules! warn_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new();
-        RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Warn, $($arg)+));
     }};
 }
@@ -85,7 +79,6 @@ macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new();
-        RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Info, $($arg)+));
     }};
 }
@@ -95,7 +88,6 @@ macro_rules! debug_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new();
-        RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Debug, $($arg)+));
     }};
 }
@@ -105,7 +97,6 @@ macro_rules! trace_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         static RATE_LIMITER: RateLimiter = RateLimiter::new();
-        RATE_LIMITER.ensure_timestamp_init();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Trace, $($arg)+));
     }};
 }
