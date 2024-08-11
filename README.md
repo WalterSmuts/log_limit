@@ -46,3 +46,5 @@ for i in 0..10 {
 * Address all in-code TODO's.
 * Figure out if there are more use-cases and configuration required
 * Figure out why my macro API looks different to the logging one? What is the target?
+* Add more documentation
+* Figure out the right API
