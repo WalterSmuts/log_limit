@@ -1,13 +1,13 @@
-# logloglo
+# log_limit
 
-A rate limiting logging crate. Pronounced "log log lo...".
+A rate limiting logging crate.
 
 ### Example:
 ```rust
 use std::thread;
 use std::time::Duration;
 
-use logloglo::info_limit;
+use log_limit::info_limit;
 use simple_logger::SimpleLogger;
 
 SimpleLogger::new().init().unwrap();
@@ -19,25 +19,25 @@ for i in 0..10 {
 
 // Produces:
 //
-// 2024-08-10T15:45:41.278Z DEBUG [logloglo_user] Loop number: 0
-// 2024-08-10T15:45:41.278Z INFO  [logloglo_user] Rate limit log for 0
-// 2024-08-10T15:45:41.279Z DEBUG [logloglo_user] Loop number: 1
-// 2024-08-10T15:45:41.279Z INFO  [logloglo_user] Rate limit log for 1
-// 2024-08-10T15:45:41.280Z DEBUG [logloglo_user] Loop number: 2
-// 2024-08-10T15:45:41.280Z INFO  [logloglo_user] Rate limit log for 2
-// 2024-08-10T15:45:41.280Z WARN  [logloglo] Starting to ignore the previous log for less than 5ms
-// 2024-08-10T15:45:41.281Z DEBUG [logloglo_user] Loop number: 3
-// 2024-08-10T15:45:41.282Z DEBUG [logloglo_user] Loop number: 4
-// 2024-08-10T15:45:41.283Z DEBUG [logloglo_user] Loop number: 5
-// 2024-08-10T15:45:41.283Z WARN  [logloglo] Ignored 3 logs since more than 5ms ago. Starting again...
-// 2024-08-10T15:45:41.283Z INFO  [logloglo_user] Rate limit log for 5
-// 2024-08-10T15:45:41.285Z DEBUG [logloglo_user] Loop number: 6
-// 2024-08-10T15:45:41.285Z INFO  [logloglo_user] Rate limit log for 6
-// 2024-08-10T15:45:41.286Z DEBUG [logloglo_user] Loop number: 7
-// 2024-08-10T15:45:41.286Z INFO  [logloglo_user] Rate limit log for 7
-// 2024-08-10T15:45:41.286Z WARN  [logloglo] Starting to ignore the previous log for less than 5ms
-// 2024-08-10T15:45:41.287Z DEBUG [logloglo_user] Loop number: 8
-// 2024-08-10T15:45:41.288Z DEBUG [logloglo_user] Loop number: 9
+// 2024-08-10T15:45:41.278Z DEBUG [log_limit_user] Loop number: 0
+// 2024-08-10T15:45:41.278Z INFO  [log_limit_user] Rate limit log for 0
+// 2024-08-10T15:45:41.279Z DEBUG [log_limit_user] Loop number: 1
+// 2024-08-10T15:45:41.279Z INFO  [log_limit_user] Rate limit log for 1
+// 2024-08-10T15:45:41.280Z DEBUG [log_limit_user] Loop number: 2
+// 2024-08-10T15:45:41.280Z INFO  [log_limit_user] Rate limit log for 2
+// 2024-08-10T15:45:41.280Z WARN  [log_limit] Starting to ignore the previous log for less than 5ms
+// 2024-08-10T15:45:41.281Z DEBUG [log_limit_user] Loop number: 3
+// 2024-08-10T15:45:41.282Z DEBUG [log_limit_user] Loop number: 4
+// 2024-08-10T15:45:41.283Z DEBUG [log_limit_user] Loop number: 5
+// 2024-08-10T15:45:41.283Z WARN  [log_limit] Ignored 3 logs since more than 5ms ago. Starting again...
+// 2024-08-10T15:45:41.283Z INFO  [log_limit_user] Rate limit log for 5
+// 2024-08-10T15:45:41.285Z DEBUG [log_limit_user] Loop number: 6
+// 2024-08-10T15:45:41.285Z INFO  [log_limit_user] Rate limit log for 6
+// 2024-08-10T15:45:41.286Z DEBUG [log_limit_user] Loop number: 7
+// 2024-08-10T15:45:41.286Z INFO  [log_limit_user] Rate limit log for 7
+// 2024-08-10T15:45:41.286Z WARN  [log_limit] Starting to ignore the previous log for less than 5ms
+// 2024-08-10T15:45:41.287Z DEBUG [log_limit_user] Loop number: 8
+// 2024-08-10T15:45:41.288Z DEBUG [log_limit_user] Loop number: 9
 ```
 
 ### TODO:
