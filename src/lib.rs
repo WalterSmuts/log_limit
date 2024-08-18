@@ -8,18 +8,18 @@ use std::time::Duration;
 use std::time::Instant;
 
 #[doc(hidden)]
-pub struct RateLimiter {
+pub struct SynchronisedRateLimiter {
     count: AtomicUsize,
     timestamp: LazyLock<Mutex<Instant>>,
 }
 
-impl Default for RateLimiter {
+impl Default for SynchronisedRateLimiter {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RateLimiter {
+impl SynchronisedRateLimiter {
     pub const fn new() -> Self {
         Self {
             count: AtomicUsize::new(0),
@@ -59,8 +59,8 @@ impl RateLimiter {
 #[macro_export]
 macro_rules! error_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new();
+        use $crate::SynchronisedRateLimiter;
+        static RATE_LIMITER: SynchronisedRateLimiter = SynchronisedRateLimiter::new();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Error, $($arg)+));
     }};
 }
@@ -68,8 +68,8 @@ macro_rules! error_limit {
 #[macro_export]
 macro_rules! warn_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new();
+        use $crate::SynchronisedRateLimiter;
+        static RATE_LIMITER: SynchronisedRateLimiter = SynchronisedRateLimiter::new();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Warn, $($arg)+));
     }};
 }
@@ -77,8 +77,8 @@ macro_rules! warn_limit {
 #[macro_export]
 macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new();
+        use $crate::SynchronisedRateLimiter;
+        static RATE_LIMITER: SynchronisedRateLimiter = SynchronisedRateLimiter::new();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Info, $($arg)+));
     }};
 }
@@ -86,8 +86,8 @@ macro_rules! info_limit {
 #[macro_export]
 macro_rules! debug_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new();
+        use $crate::SynchronisedRateLimiter;
+        static RATE_LIMITER: SynchronisedRateLimiter = SynchronisedRateLimiter::new();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Debug, $($arg)+));
     }};
 }
@@ -95,8 +95,8 @@ macro_rules! debug_limit {
 #[macro_export]
 macro_rules! trace_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        static RATE_LIMITER: RateLimiter = RateLimiter::new();
+        use $crate::SynchronisedRateLimiter;
+        static RATE_LIMITER: SynchronisedRateLimiter = SynchronisedRateLimiter::new();
         RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Trace, $($arg)+));
     }};
 }
