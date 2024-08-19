@@ -30,7 +30,8 @@ impl RateLimiter {
     pub fn log_maybe(&mut self, period: Duration, max_per_time: usize, log: impl Fn()) {
         if self.count < max_per_time {
             log();
-            if self.count == max_per_time - 1 {
+            self.count += 1;
+            if self.count == max_per_time {
                 log::warn!(
                     "Starting to ignore the previous log for less than {:?}",
                     period
@@ -47,11 +48,12 @@ impl RateLimiter {
                 );
                 }
                 log();
+                self.count = 1;
                 self.timestamp = now;
+            } else {
+                self.count += 1;
             }
         }
-
-        self.count += 1;
     }
 }
 
