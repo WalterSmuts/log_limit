@@ -5,7 +5,6 @@ use log::Metadata;
 use log::Record;
 use std::cell::RefCell;
 use std::sync::Once;
-use std::sync::ONCE_INIT;
 
 /// A captured call to the logging system. A `Vec` of these is passed
 /// to the closure supplied to the `validate()` function.
@@ -14,8 +13,6 @@ pub struct CapturedLog {
     pub body: String,
     /// The level.
     pub level: Level,
-    /// The target.
-    pub target: String,
 }
 
 thread_local!(static LOG_RECORDS: RefCell<Vec<CapturedLog>> = RefCell::new(Vec::with_capacity(3)));
@@ -33,7 +30,6 @@ impl Log for TestingLogger {
             let captured_record = CapturedLog {
                 body: format!("{}", record.args()),
                 level: record.level(),
-                target: record.target().to_string(),
             };
             records.borrow_mut().push(captured_record);
         });
@@ -42,7 +38,7 @@ impl Log for TestingLogger {
     fn flush(&self) {}
 }
 
-static FIRST_TEST: Once = ONCE_INIT;
+static FIRST_TEST: Once = Once::new();
 
 static TEST_LOGGER: TestingLogger = TestingLogger {};
 
