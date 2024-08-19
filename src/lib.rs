@@ -119,7 +119,7 @@ impl SynchronisedRateLimiter {
 
 // TODO: Write a macro to dedup this
 #[macro_export]
-macro_rules! error_limit {
+macro_rules! error_limit_global {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -129,7 +129,7 @@ macro_rules! error_limit {
 }
 
 #[macro_export]
-macro_rules! warn_limit {
+macro_rules! warn_limit_global {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -139,7 +139,7 @@ macro_rules! warn_limit {
 }
 
 #[macro_export]
-macro_rules! info_limit {
+macro_rules! info_limit_global {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -149,7 +149,7 @@ macro_rules! info_limit {
 }
 
 #[macro_export]
-macro_rules! debug_limit {
+macro_rules! debug_limit_global {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -159,7 +159,7 @@ macro_rules! debug_limit {
 }
 
 #[macro_export]
-macro_rules! trace_limit {
+macro_rules! trace_limit_global {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -169,7 +169,7 @@ macro_rules! trace_limit {
 }
 
 #[macro_export]
-macro_rules! error_limit_thread {
+macro_rules! error_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -188,7 +188,7 @@ macro_rules! error_limit_thread {
 }
 
 #[macro_export]
-macro_rules! warn_limit_thread {
+macro_rules! warn_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -207,7 +207,7 @@ macro_rules! warn_limit_thread {
 }
 
 #[macro_export]
-macro_rules! info_limit_thread {
+macro_rules! info_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -226,7 +226,7 @@ macro_rules! info_limit_thread {
 }
 
 #[macro_export]
-macro_rules! debug_limit_thread {
+macro_rules! debug_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -245,7 +245,7 @@ macro_rules! debug_limit_thread {
 }
 
 #[macro_export]
-macro_rules! trace_limit_thread {
+macro_rules! trace_limit {
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -265,7 +265,7 @@ macro_rules! trace_limit_thread {
 
 #[cfg(test)]
 mod tests {
-    use super::info_limit;
+    use super::info_limit_global;
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;
@@ -280,10 +280,10 @@ mod tests {
         for _ in 0..11 {
             match variant_under_test {
                 LoggerVariant::TheadLocal => {
-                    info_limit_thread!(2, Duration::from_millis(50), "Logging on repeat")
+                    info_limit!(2, Duration::from_millis(50), "Logging on repeat")
                 }
                 LoggerVariant::Shared => {
-                    info_limit!(2, Duration::from_millis(50), "Logging on repeat")
+                    info_limit_global!(2, Duration::from_millis(50), "Logging on repeat")
                 }
             }
             thread::sleep(Duration::from_millis(11));
@@ -391,7 +391,7 @@ mod tests {
             let start = Instant::now();
             while Instant::now().duration_since(start) < Duration::from_millis(TEST_TIME_MS as u64)
             {
-                info_limit_thread!(
+                info_limit!(
                     MAX_LOGS_PER_PERIOD,
                     Duration::from_millis(TEST_PERIOD_MS as u64),
                     "Logging on repeat"
@@ -411,7 +411,7 @@ mod tests {
                         while Instant::now().duration_since(*start)
                             < Duration::from_millis(TEST_TIME_MS as u64)
                         {
-                            info_limit!(
+                            info_limit_global!(
                                 MAX_LOGS_PER_PERIOD,
                                 Duration::from_millis(TEST_PERIOD_MS as u64),
                                 "Logging on repeat"
@@ -428,19 +428,19 @@ mod tests {
 
     #[test]
     fn all_synchronised_variants_compile() {
+        error_limit_global!(1, Duration::from_millis(1), "");
+        warn_limit_global!(1, Duration::from_millis(1), "");
+        info_limit_global!(1, Duration::from_millis(1), "");
+        debug_limit_global!(1, Duration::from_millis(1), "");
+        trace_limit_global!(1, Duration::from_millis(1), "");
+    }
+
+    #[test]
+    fn all_thread_variants_compile() {
         error_limit!(1, Duration::from_millis(1), "");
         warn_limit!(1, Duration::from_millis(1), "");
         info_limit!(1, Duration::from_millis(1), "");
         debug_limit!(1, Duration::from_millis(1), "");
         trace_limit!(1, Duration::from_millis(1), "");
-    }
-
-    #[test]
-    fn all_thread_variants_compile() {
-        error_limit_thread!(1, Duration::from_millis(1), "");
-        warn_limit_thread!(1, Duration::from_millis(1), "");
-        info_limit_thread!(1, Duration::from_millis(1), "");
-        debug_limit_thread!(1, Duration::from_millis(1), "");
-        trace_limit_thread!(1, Duration::from_millis(1), "");
     }
 }
