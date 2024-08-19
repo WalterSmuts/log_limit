@@ -252,11 +252,22 @@ mod tests {
     use std::time::Duration;
     use std::time::Instant;
 
-    #[test]
-    fn thread_local_logger_limits_correctly() {
+    enum LoggerVariant {
+        TheadLocal,
+        Shared,
+    }
+
+    fn logger_limits_correctly(variant_under_test: LoggerVariant) {
         testing_logger::setup();
         for _ in 0..11 {
-            info_limit_thread!(2, Duration::from_millis(50), "Logging on repeat");
+            match variant_under_test {
+                LoggerVariant::TheadLocal => {
+                    info_limit_thread!(2, Duration::from_millis(50), "Logging on repeat")
+                }
+                LoggerVariant::Shared => {
+                    info_limit!(2, Duration::from_millis(50), "Logging on repeat")
+                }
+            }
             thread::sleep(Duration::from_millis(11));
             // 00: Log
             // 11: Log (and warn of omission)
@@ -295,6 +306,16 @@ mod tests {
                 ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
             );
         })
+    }
+
+    #[test]
+    fn thread_local_logger_limits_correctly() {
+        logger_limits_correctly(LoggerVariant::TheadLocal);
+    }
+
+    #[test]
+    fn shared_logger_limits_correctly() {
+        logger_limits_correctly(LoggerVariant::Shared);
     }
 
     #[test]
