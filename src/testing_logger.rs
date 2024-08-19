@@ -3,7 +3,7 @@ use log::LevelFilter;
 use log::Log;
 use log::Metadata;
 use log::Record;
-use std::cell::RefCell;
+use std::sync::Mutex;
 use std::sync::Once;
 
 /// A captured call to the logging system. A `Vec` of these is passed
@@ -15,7 +15,7 @@ pub struct CapturedLog {
     pub level: Level,
 }
 
-thread_local!(static LOG_RECORDS: RefCell<Vec<CapturedLog>> = RefCell::new(Vec::with_capacity(3)));
+static LOG_RECORDS: Mutex<Vec<CapturedLog>> = Mutex::new(Vec::new());
 
 struct TestingLogger {}
 
@@ -26,13 +26,12 @@ impl Log for TestingLogger {
     }
 
     fn log(&self, record: &Record) {
-        LOG_RECORDS.with(|records| {
-            let captured_record = CapturedLog {
-                body: format!("{}", record.args()),
-                level: record.level(),
-            };
-            records.borrow_mut().push(captured_record);
-        });
+        let mut records = LOG_RECORDS.lock().unwrap();
+        let captured_record = CapturedLog {
+            body: format!("{}", record.args()),
+            level: record.level(),
+        };
+        records.push(captured_record);
     }
 
     fn flush(&self) {}
@@ -53,9 +52,8 @@ pub fn setup() {
             .map(|()| log::set_max_level(LevelFilter::Trace))
             .unwrap();
     });
-    LOG_RECORDS.with(|records| {
-        records.borrow_mut().truncate(0);
-    });
+    let mut records = LOG_RECORDS.lock().unwrap();
+    records.truncate(0);
 }
 
 /// Used to validate any captured log events.
@@ -66,8 +64,7 @@ pub fn validate<F>(asserter: F)
 where
     F: Fn(&Vec<CapturedLog>),
 {
-    LOG_RECORDS.with(|records| {
-        asserter(&records.borrow());
-        records.borrow_mut().truncate(0);
-    });
+    let mut records = LOG_RECORDS.lock().unwrap();
+    asserter(&records);
+    records.truncate(0);
 }
