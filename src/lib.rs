@@ -7,6 +7,9 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 
+#[cfg(test)]
+mod testing_logger;
+
 #[doc(hidden)]
 pub struct RateLimiter {
     count: usize,
@@ -248,6 +251,7 @@ macro_rules! trace_limit_thread {
 #[cfg(test)]
 mod tests {
     use super::info_limit;
+    use super::testing_logger;
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;
@@ -258,7 +262,7 @@ mod tests {
     }
 
     fn logger_limits_correctly(variant_under_test: LoggerVariant) {
-        testing_logger::setup();
+        crate::testing_logger::setup();
         for _ in 0..11 {
             match variant_under_test {
                 LoggerVariant::TheadLocal => {
