@@ -251,31 +251,101 @@ mod tests {
     use super::info_limit;
     use std::thread;
     use std::time::Duration;
-
-    use simple_logger::SimpleLogger;
+    use std::time::Instant;
 
     #[test]
-    fn it_works() {
-        SimpleLogger::new().init().unwrap();
-        let a = 1;
-        info_limit!(1, Duration::from_millis(60), "Logging with nothing");
-        info_limit!(
-            10,
-            Duration::from_millis(60),
-            "Logging with arg value {}",
-            10
-        );
-        info_limit!(
-            1,
-            Duration::from_millis(60),
-            "Logging with inner string value {a}"
-        );
-
-        for i in 0..10 {
-            log::debug!("{i}");
-            info_limit!(3, Duration::from_millis(5), "Logging on repeat");
-            thread::sleep(Duration::from_millis(1));
+    fn thread_local_logger_limits_correctly() {
+        testing_logger::setup();
+        for _ in 0..11 {
+            info_limit_thread!(2, Duration::from_millis(50), "Logging on repeat");
+            thread::sleep(Duration::from_millis(11));
+            // 00: Log
+            // 11: Log (and warn of omission)
+            // 22: Ommit
+            // 33: Ommit
+            // 44: Ommit
+            // 55: Log (and warn: missed 3)
+            // 66: Log (and warn of omission)
+            // 77: Ommit
+            // 88: Ommit
+            // 99: Ommit
+            // 110: Log (and warn: missed 3)
         }
+        testing_logger::validate(|captured_logs| {
+            let warning_logs = captured_logs
+                .iter()
+                .filter(|log| log.level == log::Level::Warn);
+
+            let info_logs = captured_logs
+                .iter()
+                .filter(|log| log.level == log::Level::Info);
+
+            assert_eq!(warning_logs.clone().count(), 4);
+            assert_eq!(info_logs.count(), 5);
+
+            let ignored_warnings: Vec<_> = warning_logs
+                .filter(|log| log.body.contains("Ignored"))
+                .collect();
+            assert_eq!(ignored_warnings.len(), 2);
+            assert_eq!(
+                "3",
+                ignored_warnings[0].body.split_whitespace().nth(1).unwrap()
+            );
+            assert_eq!(
+                "3",
+                ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
+            );
+        })
+    }
+
+    #[test]
+    fn spamming_does_not_work() {
+        const ACCEPTABLE_DROP_FACTOR: f64 = 0.99;
+        const TEST_TIME_MS: usize = 500;
+        const TEST_PERIOD_MS: usize = 1;
+        const MAX_LOGS_PER_PERIOD: usize = 500;
+        const MAX_EXPECTED_WARNING_LOGS_PER_PERIOD: usize = 2;
+
+        let start = Instant::now();
+        testing_logger::setup();
+        while Instant::now().duration_since(start) < Duration::from_millis(TEST_TIME_MS as u64) {
+            info_limit_thread!(
+                MAX_LOGS_PER_PERIOD,
+                Duration::from_millis(TEST_PERIOD_MS as u64),
+                "Logging on repeat"
+            );
+        }
+        testing_logger::validate(|captured_logs| {
+            let warning_logs = captured_logs
+                .iter()
+                .filter(|log| log.level == log::Level::Warn);
+
+            let info_logs = captured_logs
+                .iter()
+                .filter(|log| log.level == log::Level::Info);
+
+            let warning_logs_count = warning_logs.count();
+            let info_logs_count = info_logs.count();
+
+            // Enusre we don't overstep the limit on average
+            assert!(
+                warning_logs_count
+                    <= TEST_TIME_MS / TEST_PERIOD_MS * MAX_EXPECTED_WARNING_LOGS_PER_PERIOD
+            );
+            assert!(info_logs_count <= MAX_LOGS_PER_PERIOD * TEST_TIME_MS);
+
+            // Enusre we still emit logs up to the threshold
+            assert!(
+                warning_logs_count as f64
+                    > ((TEST_TIME_MS / TEST_PERIOD_MS * MAX_EXPECTED_WARNING_LOGS_PER_PERIOD)
+                        as f64
+                        * ACCEPTABLE_DROP_FACTOR)
+            );
+            assert!(
+                info_logs_count as f64
+                    > ((MAX_LOGS_PER_PERIOD * TEST_TIME_MS) as f64 * ACCEPTABLE_DROP_FACTOR)
+            );
+        })
     }
 
     #[test]
