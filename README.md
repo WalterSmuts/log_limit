@@ -46,7 +46,6 @@ for i in 0..10 {
 ```
 
 ### TODO:
-* Implement a thread-local variant (can you even make it sound?)
 * Do some benchmarking and optimization
 * Address all in-code TODO's.
 * Figure out if there are more use-cases and configuration required
