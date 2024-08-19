@@ -72,10 +72,10 @@ impl SynchronisedRateLimiter {
     }
 
     pub fn log_maybe(&self, period: Duration, max_per_time: usize, log: impl Fn()) {
-        let count = self.count.fetch_add(1, Ordering::Relaxed);
-        if count < max_per_time {
+        let count = self.count.fetch_add(1, Ordering::Relaxed) + 1;
+        if count <= max_per_time {
             log();
-            if count == max_per_time - 1 {
+            if count == max_per_time {
                 log::warn!(
                     "Starting to ignore the previous log for less than {:?}",
                     period
@@ -85,7 +85,7 @@ impl SynchronisedRateLimiter {
             let now = Instant::now();
             let mut timestamp = self.timestamp.lock().unwrap();
             if now.duration_since(*timestamp) > period {
-                let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time;
+                let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
                 if filtered_log_count > 0 {
                     log::warn!(
                     "Ignored {filtered_log_count} logs since more than {:?} ago. Starting again...",
