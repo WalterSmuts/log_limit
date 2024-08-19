@@ -251,7 +251,6 @@ macro_rules! trace_limit_thread {
 #[cfg(test)]
 mod tests {
     use super::info_limit;
-    use super::testing_logger;
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;
@@ -285,7 +284,7 @@ mod tests {
             // 99: Ommit
             // 110: Log (and warn: missed 3)
         }
-        testing_logger::validate(|captured_logs| {
+        crate::testing_logger::validate(|captured_logs| {
             let warning_logs = captured_logs
                 .iter()
                 .filter(|log| log.level == log::Level::Warn);
@@ -322,24 +321,15 @@ mod tests {
         logger_limits_correctly(LoggerVariant::Shared);
     }
 
-    #[test]
-    fn spamming_does_not_work() {
-        const ACCEPTABLE_DROP_FACTOR: f64 = 0.99;
-        const TEST_TIME_MS: usize = 500;
-        const TEST_PERIOD_MS: usize = 1;
-        const MAX_LOGS_PER_PERIOD: usize = 500;
-        const MAX_EXPECTED_WARNING_LOGS_PER_PERIOD: usize = 2;
-
-        let start = Instant::now();
-        testing_logger::setup();
-        while Instant::now().duration_since(start) < Duration::from_millis(TEST_TIME_MS as u64) {
-            info_limit_thread!(
-                MAX_LOGS_PER_PERIOD,
-                Duration::from_millis(TEST_PERIOD_MS as u64),
-                "Logging on repeat"
-            );
-        }
-        testing_logger::validate(|captured_logs| {
+    const ACCEPTABLE_DROP_FACTOR: f64 = 0.99;
+    const TEST_TIME_MS: usize = 500;
+    const TEST_PERIOD_MS: usize = 1;
+    const MAX_LOGS_PER_PERIOD: usize = 500;
+    const MAX_EXPECTED_WARNING_LOGS_PER_PERIOD: usize = 2;
+    fn spamming_does_not_work(spam_logs: impl Fn()) {
+        crate::testing_logger::setup();
+        spam_logs();
+        crate::testing_logger::validate(|captured_logs| {
             let warning_logs = captured_logs
                 .iter()
                 .filter(|log| log.level == log::Level::Warn);
@@ -358,7 +348,6 @@ mod tests {
             );
             assert!(info_logs_count <= MAX_LOGS_PER_PERIOD * TEST_TIME_MS);
 
-            // Enusre we still emit logs up to the threshold
             assert!(
                 warning_logs_count as f64
                     > ((TEST_TIME_MS / TEST_PERIOD_MS * MAX_EXPECTED_WARNING_LOGS_PER_PERIOD)
@@ -369,6 +358,47 @@ mod tests {
                 info_logs_count as f64
                     > ((MAX_LOGS_PER_PERIOD * TEST_TIME_MS) as f64 * ACCEPTABLE_DROP_FACTOR)
             );
+        })
+    }
+
+    #[test]
+    fn thread_local_spamming_does_not_work() {
+        spamming_does_not_work(|| {
+            let start = Instant::now();
+            while Instant::now().duration_since(start) < Duration::from_millis(TEST_TIME_MS as u64)
+            {
+                info_limit_thread!(
+                    MAX_LOGS_PER_PERIOD,
+                    Duration::from_millis(TEST_PERIOD_MS as u64),
+                    "Logging on repeat"
+                );
+            }
+        })
+    }
+
+    #[test]
+    fn sync_spamming_does_not_work_sync() {
+        spamming_does_not_work(|| {
+            let start = Box::new(Instant::now());
+            let start = Box::leak(start);
+            let handles: Vec<_> = (0..1)
+                .map(|_| {
+                    std::thread::spawn(|| {
+                        while Instant::now().duration_since(*start)
+                            < Duration::from_millis(TEST_TIME_MS as u64)
+                        {
+                            info_limit!(
+                                MAX_LOGS_PER_PERIOD,
+                                Duration::from_millis(TEST_PERIOD_MS as u64),
+                                "Logging on repeat"
+                            );
+                        }
+                    })
+                })
+                .collect();
+            for handle in handles {
+                handle.join().unwrap();
+            }
         })
     }
 
