@@ -10,6 +10,10 @@ keywords = ["macro", "rate", "limit", "utility", "logging"]
 categories = ["development-tools", "rust-patterns", "command-line-interface", "config", "web-programming"]
 readme = "README.md"
 
+[features]
+default = ["warning-messages"]
+warning-messages = []
+
 [dependencies]
 log = "0.4.22"
 

@@ -9,6 +9,7 @@ use std::sync::Once;
 /// A captured call to the logging system. A `Vec` of these is passed
 /// to the closure supplied to the `validate()` function.
 pub struct CapturedLog {
+    #[cfg(feature = "warning-messages")]
     /// The formatted log message.
     pub body: String,
     /// The level.
@@ -28,6 +29,7 @@ impl Log for TestingLogger {
     fn log(&self, record: &Record) {
         let mut records = LOG_RECORDS.lock().unwrap();
         let captured_record = CapturedLog {
+            #[cfg(feature = "warning-messages")]
             body: format!("{}", record.args()),
             level: record.level(),
         };

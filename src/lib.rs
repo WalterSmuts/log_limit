@@ -32,10 +32,14 @@ impl RateLimiter {
 
     pub fn log_maybe(&mut self, period: Duration, max_per_time: usize, log: impl Fn()) {
         let now = Instant::now();
+
+        #[cfg(feature = "warning-messages")]
         let calculated_duration = now.duration_since(self.timestamp);
         if self.count < max_per_time {
             log();
             self.count += 1;
+
+            #[cfg(feature = "warning-messages")]
             if self.count == max_per_time {
                 log::warn!(
                     "Hit logging threashold! Starting to ignore the previous log for {:?}",
@@ -45,7 +49,9 @@ impl RateLimiter {
         } else {
             let calculated_duration = now.duration_since(self.timestamp);
             if calculated_duration > period {
+                #[cfg(feature = "warning-messages")]
                 let filtered_log_count = self.count - max_per_time;
+                #[cfg(feature = "warning-messages")]
                 if filtered_log_count > 0 {
                     log::warn!(
                         "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
@@ -80,6 +86,7 @@ impl SynchronisedRateLimiter {
         let count = self.count.fetch_add(1, Ordering::Relaxed) + 1;
         if count <= max_per_time {
             log();
+            #[cfg(feature = "warning-messages")]
             if count == max_per_time {
                 log::warn!(
                     "Hit logging threashold! Starting to ignore the previous log for more than {:?}",
@@ -92,7 +99,11 @@ impl SynchronisedRateLimiter {
 
             let calculated_duration = now.duration_since(*timestamp);
             if calculated_duration > period {
+                #[cfg(feature = "warning-messages")]
                 let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
+                #[cfg(not(feature = "warning-messages"))]
+                let _filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
+                #[cfg(feature = "warning-messages")]
                 if filtered_log_count > 0 {
                     log::warn!(
                         "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
@@ -289,6 +300,7 @@ mod tests {
             // 110: Log (and warn: missed 3)
         }
         crate::testing_logger::validate(|captured_logs| {
+            #[cfg(feature = "warning-messages")]
             let warning_logs = captured_logs
                 .iter()
                 .filter(|log| log.level == log::Level::Warn);
@@ -297,21 +309,24 @@ mod tests {
                 .iter()
                 .filter(|log| log.level == log::Level::Info);
 
+            #[cfg(feature = "warning-messages")]
             assert_eq!(warning_logs.clone().count(), 4);
             assert_eq!(info_logs.count(), 5);
-
-            let ignored_warnings: Vec<_> = warning_logs
-                .filter(|log| log.body.contains("Ignored"))
-                .collect();
-            assert_eq!(ignored_warnings.len(), 2);
-            assert_eq!(
-                "3",
-                ignored_warnings[0].body.split_whitespace().nth(1).unwrap()
-            );
-            assert_eq!(
-                "3",
-                ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
-            );
+            #[cfg(feature = "warning-messages")]
+            {
+                let ignored_warnings: Vec<_> = warning_logs
+                    .filter(|log| log.body.contains("Ignored"))
+                    .collect();
+                assert_eq!(ignored_warnings.len(), 2);
+                assert_eq!(
+                    "3",
+                    ignored_warnings[0].body.split_whitespace().nth(1).unwrap()
+                );
+                assert_eq!(
+                    "3",
+                    ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
+                );
+            }
         })
     }
 
@@ -329,11 +344,13 @@ mod tests {
     const TEST_TIME_MS: usize = 500;
     const TEST_PERIOD_MS: usize = 1;
     const MAX_LOGS_PER_PERIOD: usize = 500;
+    #[cfg(feature = "warning-messages")]
     const MAX_EXPECTED_WARNING_LOGS_PER_PERIOD: usize = 2;
     fn spamming_does_not_work(spam_logs: impl Fn()) {
         crate::testing_logger::setup();
         spam_logs();
         crate::testing_logger::validate(|captured_logs| {
+            #[cfg(feature = "warning-messages")]
             let warning_logs = captured_logs
                 .iter()
                 .filter(|log| log.level == log::Level::Warn);
@@ -342,16 +359,19 @@ mod tests {
                 .iter()
                 .filter(|log| log.level == log::Level::Info);
 
+            #[cfg(feature = "warning-messages")]
             let warning_logs_count = warning_logs.count();
             let info_logs_count = info_logs.count();
 
             // Enusre we don't overstep the limit on average
+            #[cfg(feature = "warning-messages")]
             assert!(
                 warning_logs_count
                     <= TEST_TIME_MS / TEST_PERIOD_MS * MAX_EXPECTED_WARNING_LOGS_PER_PERIOD
             );
             assert!(info_logs_count <= MAX_LOGS_PER_PERIOD * TEST_TIME_MS);
 
+            #[cfg(feature = "warning-messages")]
             assert!(
                 warning_logs_count as f64
                     > ((TEST_TIME_MS / TEST_PERIOD_MS * MAX_EXPECTED_WARNING_LOGS_PER_PERIOD)
