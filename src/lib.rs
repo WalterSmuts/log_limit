@@ -31,24 +31,26 @@ impl RateLimiter {
     }
 
     pub fn log_maybe(&mut self, period: Duration, max_per_time: usize, log: impl Fn()) {
+        let now = Instant::now();
+        let calculated_duration = now.duration_since(self.timestamp);
         if self.count < max_per_time {
             log();
             self.count += 1;
             if self.count == max_per_time {
                 log::warn!(
-                    "Starting to ignore the previous log for less than {:?}",
-                    period
+                    "Hit logging threashold! Starting to ignore the previous log for {:?}",
+                    calculated_duration
                 );
             }
         } else {
-            let now = Instant::now();
-            if now.duration_since(self.timestamp) > period {
+            let calculated_duration = now.duration_since(self.timestamp);
+            if calculated_duration > period {
                 let filtered_log_count = self.count - max_per_time;
                 if filtered_log_count > 0 {
                     log::warn!(
-                    "Ignored {filtered_log_count} logs since more than {:?} ago. Starting again...",
-                    period
-                );
+                        "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
+                        calculated_duration
+                    );
                 }
                 log();
                 self.count = 1;
@@ -80,20 +82,22 @@ impl SynchronisedRateLimiter {
             log();
             if count == max_per_time {
                 log::warn!(
-                    "Starting to ignore the previous log for less than {:?}",
+                    "Hit logging threashold! Starting to ignore the previous log for more than {:?}",
                     period
                 );
             }
         } else {
             let now = Instant::now();
             let mut timestamp = self.timestamp.lock().unwrap();
-            if now.duration_since(*timestamp) > period {
+
+            let calculated_duration = now.duration_since(*timestamp);
+            if calculated_duration > period {
                 let filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
                 if filtered_log_count > 0 {
                     log::warn!(
-                    "Ignored {filtered_log_count} logs since more than {:?} ago. Starting again...",
-                    period
-                );
+                        "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
+                        calculated_duration
+                    );
                 }
                 log();
                 *timestamp = now;
