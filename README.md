@@ -21,28 +21,29 @@ for i in 0..10 {
     info_limit!(3, Duration::from_millis(5), "Rate limit log for {i}");
     thread::sleep(Duration::from_millis(1));
 }
+```
 
-// Produces:
-//
-// 2024-08-10T15:45:41.278Z DEBUG [log_limit_user] Loop number: 0
-// 2024-08-10T15:45:41.278Z INFO  [log_limit_user] Rate limit log for 0
-// 2024-08-10T15:45:41.279Z DEBUG [log_limit_user] Loop number: 1
-// 2024-08-10T15:45:41.279Z INFO  [log_limit_user] Rate limit log for 1
-// 2024-08-10T15:45:41.280Z DEBUG [log_limit_user] Loop number: 2
-// 2024-08-10T15:45:41.280Z INFO  [log_limit_user] Rate limit log for 2
-// 2024-08-10T15:45:41.280Z WARN  [log_limit] Starting to ignore the previous log for less than 5ms
-// 2024-08-10T15:45:41.281Z DEBUG [log_limit_user] Loop number: 3
-// 2024-08-10T15:45:41.282Z DEBUG [log_limit_user] Loop number: 4
-// 2024-08-10T15:45:41.283Z DEBUG [log_limit_user] Loop number: 5
-// 2024-08-10T15:45:41.283Z WARN  [log_limit] Ignored 3 logs since more than 5ms ago. Starting again...
-// 2024-08-10T15:45:41.283Z INFO  [log_limit_user] Rate limit log for 5
-// 2024-08-10T15:45:41.285Z DEBUG [log_limit_user] Loop number: 6
-// 2024-08-10T15:45:41.285Z INFO  [log_limit_user] Rate limit log for 6
-// 2024-08-10T15:45:41.286Z DEBUG [log_limit_user] Loop number: 7
-// 2024-08-10T15:45:41.286Z INFO  [log_limit_user] Rate limit log for 7
-// 2024-08-10T15:45:41.286Z WARN  [log_limit] Starting to ignore the previous log for less than 5ms
-// 2024-08-10T15:45:41.287Z DEBUG [log_limit_user] Loop number: 8
-// 2024-08-10T15:45:41.288Z DEBUG [log_limit_user] Loop number: 9
+#### Produces:
+```txt
+2024-08-24T10:49:29.197Z DEBUG [log_limit_user] Loop number: 0
+2024-08-24T10:49:29.197Z ERROR [log_limit_user] Rate limit log for 0
+2024-08-24T10:49:29.198Z DEBUG [log_limit_user] Loop number: 1
+2024-08-24T10:49:29.198Z ERROR [log_limit_user] Rate limit log for 1
+2024-08-24T10:49:29.199Z DEBUG [log_limit_user] Loop number: 2
+2024-08-24T10:49:29.199Z ERROR [log_limit_user] Rate limit log for 2
+2024-08-24T10:49:29.199Z WARN  [log_limit] Hit logging threashold! Starting to ignore the previous log for 2.218167ms
+2024-08-24T10:49:29.200Z DEBUG [log_limit_user] Loop number: 3
+2024-08-24T10:49:29.201Z DEBUG [log_limit_user] Loop number: 4
+2024-08-24T10:49:29.203Z DEBUG [log_limit_user] Loop number: 5
+2024-08-24T10:49:29.203Z WARN  [log_limit] Ignored 2 logs since 5.515993ms ago. Starting to log again...
+2024-08-24T10:49:29.203Z ERROR [log_limit_user] Rate limit log for 5
+2024-08-24T10:49:29.204Z DEBUG [log_limit_user] Loop number: 6
+2024-08-24T10:49:29.204Z ERROR [log_limit_user] Rate limit log for 6
+2024-08-24T10:49:29.205Z DEBUG [log_limit_user] Loop number: 7
+2024-08-24T10:49:29.205Z ERROR [log_limit_user] Rate limit log for 7
+2024-08-24T10:49:29.205Z WARN  [log_limit] Hit logging threashold! Starting to ignore the previous log for 2.181079ms
+2024-08-24T10:49:29.206Z DEBUG [log_limit_user] Loop number: 8
+2024-08-24T10:49:29.207Z DEBUG [log_limit_user] Loop number: 9
 ```
 
 ### TODO:
