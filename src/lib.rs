@@ -42,7 +42,7 @@ impl RateLimiter {
             #[cfg(feature = "warning-messages")]
             if self.count == max_per_time {
                 log::warn!(
-                    "Hit logging threashold! Starting to ignore the previous log for {:?}",
+                    "Hit logging threshold! Starting to ignore the previous log for {:?}",
                     calculated_duration
                 );
             }
@@ -89,7 +89,7 @@ impl SynchronisedRateLimiter {
             #[cfg(feature = "warning-messages")]
             if count == max_per_time {
                 log::warn!(
-                    "Hit logging threashold! Starting to ignore the previous log for more than {:?}",
+                    "Hit logging threshold! Starting to ignore the previous log for more than {:?}",
                     period
                 );
             }
@@ -289,14 +289,14 @@ mod tests {
             thread::sleep(Duration::from_millis(11));
             // 00: Log
             // 11: Log (and warn of omission)
-            // 22: Ommit
-            // 33: Ommit
-            // 44: Ommit
+            // 22: Omit
+            // 33: Omit
+            // 44: Omit
             // 55: Log (and warn: missed 3)
             // 66: Log (and warn of omission)
-            // 77: Ommit
-            // 88: Ommit
-            // 99: Ommit
+            // 77: Omit
+            // 88: Omit
+            // 99: Omit
             // 110: Log (and warn: missed 3)
         }
         crate::testing_logger::validate(|captured_logs| {
@@ -363,7 +363,7 @@ mod tests {
             let warning_logs_count = warning_logs.count();
             let info_logs_count = info_logs.count();
 
-            // Enusre we don't overstep the limit on average
+            // Ensure we don't overstep the limit on average
             #[cfg(feature = "warning-messages")]
             assert!(
                 warning_logs_count

@@ -2,7 +2,7 @@
 
 A rate limiting logging crate. Simply wraps the [log] crate with logic to
 ignore writing logs if that specific log-line is called too often. This is
-controlled by a `threshold` and a `period`. If the theshold is reached the log
+controlled by a `threshold` and a `period`. If the threshold is reached the log
 is ignored for the rest of the period. Warnings are \[optionally\] logged to
 inform the user that the log is being ignored when the threshold is hit. When
 the next period starts, another warning is logged, reporting the number of logs
@@ -50,7 +50,7 @@ for i in 0..10 {
 2024-08-24T10:49:29.198Z ERROR [log_limit_user] Rate limit log for 1
 2024-08-24T10:49:29.199Z DEBUG [log_limit_user] Loop number: 2
 2024-08-24T10:49:29.199Z ERROR [log_limit_user] Rate limit log for 2
-2024-08-24T10:49:29.199Z WARN  [log_limit] Hit logging threashold! Starting to ignore the previous log for 2.218167ms
+2024-08-24T10:49:29.199Z WARN  [log_limit] Hit logging threshold! Starting to ignore the previous log for 2.218167ms
 2024-08-24T10:49:29.200Z DEBUG [log_limit_user] Loop number: 3
 2024-08-24T10:49:29.201Z DEBUG [log_limit_user] Loop number: 4
 2024-08-24T10:49:29.203Z DEBUG [log_limit_user] Loop number: 5
@@ -60,7 +60,7 @@ for i in 0..10 {
 2024-08-24T10:49:29.204Z ERROR [log_limit_user] Rate limit log for 6
 2024-08-24T10:49:29.205Z DEBUG [log_limit_user] Loop number: 7
 2024-08-24T10:49:29.205Z ERROR [log_limit_user] Rate limit log for 7
-2024-08-24T10:49:29.205Z WARN  [log_limit] Hit logging threashold! Starting to ignore the previous log for 2.181079ms
+2024-08-24T10:49:29.205Z WARN  [log_limit] Hit logging threshold! Starting to ignore the previous log for 2.181079ms
 2024-08-24T10:49:29.206Z DEBUG [log_limit_user] Loop number: 8
 2024-08-24T10:49:29.207Z DEBUG [log_limit_user] Loop number: 9
 ```
