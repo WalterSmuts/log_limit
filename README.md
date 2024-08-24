@@ -2,10 +2,29 @@
 
 A rate limiting logging crate. Simply wraps the [log] crate with logic to
 ignore writing logs if that specific log-line is called too often. This is
-contorlled by a threshold and a period. If the theshold is reached the log is
-ignored for the rest of the period. Warnings are logged to inform the user that
-the log is being ignored when the threshold is hit and when the next period
-starts, providing the number of logs that were ignored.
+controlled by a `threshold` and a `period`. If the theshold is reached the log
+is ignored for the rest of the period. Warnings are \[optionally\] logged to
+inform the user that the log is being ignored when the threshold is hit. When
+the next period starts, another warning is logged, reporting the number of logs
+that were ignored.
+
+### Properties
+* The rate-limiting only applies for the single lexical (in-code) log line
+* On average the log emission rate won't exceed the rate specified by
+  `threshold` / `period`
+* The log emission is bursty to maintain sequential order of logs, i.e. either
+  emitting all or nothing
+* Any arbitrary `period` will contain <= 2x the threshold amount of logs
+  (because two bursts can "just" fall in one arbitrary `period`)
+
+### Variants
+1. *Normal* - rate limit applies to a single thread.
+    1. `[error|warn|info|debug|trace]_limit!`
+    1. Uses [thread_local] storage
+1. *Global* - rate limit applies to the entire process.
+    1. `[error|warn|info|debug|trace]_limit_global!`
+    1. Uses atomics to synchronise
+    1. Takes a global lock (only when over the threshold)
 
 ### Example:
 ```rust
@@ -49,9 +68,8 @@ for i in 0..10 {
 ### TODO:
 * Do some benchmarking and optimization
 * Address all in-code TODO's.
-* Figure out if there are more use-cases and configuration required
 * Figure out why my macro API looks different to the logging one? What is the target?
-* Add more documentation
 * Figure out the right API
 
 [log]: https://docs.rs/log/latest/log/
+[thread_local]: https://doc.rust-lang.org/std/macro.thread_local.htmlhttps://doc.rust-lang.org/std/macro.thread_local.html
