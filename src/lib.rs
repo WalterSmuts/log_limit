@@ -43,7 +43,7 @@ impl RateLimiter {
             if self.count == max_per_time {
                 log::warn!(
                     "Hit logging threshold! Starting to ignore the previous log for {:?}",
-                    calculated_duration
+                    period - calculated_duration
                 );
             }
         } else {
