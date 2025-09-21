@@ -123,6 +123,12 @@ impl SynchronisedRateLimiter {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! global_limit_impl {
+    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
+        use $crate::SynchronisedRateLimiter;
+        use std::sync::LazyLock;
+        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+));
+    }};
     ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
@@ -133,6 +139,9 @@ macro_rules! global_limit_impl {
 
 #[macro_export]
 macro_rules! error_limit_global {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Error, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::global_limit_impl!(log::Level::Error, $max_per_time, $period, $($arg)+)
     };
@@ -140,6 +149,9 @@ macro_rules! error_limit_global {
 
 #[macro_export]
 macro_rules! warn_limit_global {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Warn, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::global_limit_impl!(log::Level::Warn, $max_per_time, $period, $($arg)+)
     };
@@ -147,6 +159,9 @@ macro_rules! warn_limit_global {
 
 #[macro_export]
 macro_rules! info_limit_global {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Info, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::global_limit_impl!(log::Level::Info, $max_per_time, $period, $($arg)+)
     };
@@ -154,6 +169,9 @@ macro_rules! info_limit_global {
 
 #[macro_export]
 macro_rules! debug_limit_global {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Debug, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::global_limit_impl!(log::Level::Debug, $max_per_time, $period, $($arg)+)
     };
@@ -161,6 +179,9 @@ macro_rules! debug_limit_global {
 
 #[macro_export]
 macro_rules! trace_limit_global {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Trace, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::global_limit_impl!(log::Level::Trace, $max_per_time, $period, $($arg)+)
     };
@@ -170,6 +191,21 @@ macro_rules! trace_limit_global {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! limit_impl {
+    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
+        use std::cell::RefCell;
+        use std::thread_local;
+
+        thread_local! {
+            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
+        }
+
+        RATE_LIMITER.with(|rate_limiter| {
+            rate_limiter
+                .borrow_mut()
+                .log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+))
+        });
+    }};
     ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
@@ -189,6 +225,9 @@ macro_rules! limit_impl {
 
 #[macro_export]
 macro_rules! error_limit {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Error, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::limit_impl!(log::Level::Error, $max_per_time, $period, $($arg)+)
     };
@@ -196,6 +235,9 @@ macro_rules! error_limit {
 
 #[macro_export]
 macro_rules! warn_limit {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Warn, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::limit_impl!(log::Level::Warn, $max_per_time, $period, $($arg)+)
     };
@@ -203,6 +245,9 @@ macro_rules! warn_limit {
 
 #[macro_export]
 macro_rules! info_limit {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Info, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::limit_impl!(log::Level::Info, $max_per_time, $period, $($arg)+)
     };
@@ -210,6 +255,9 @@ macro_rules! info_limit {
 
 #[macro_export]
 macro_rules! debug_limit {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Debug, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::limit_impl!(log::Level::Debug, $max_per_time, $period, $($arg)+)
     };
@@ -217,6 +265,9 @@ macro_rules! debug_limit {
 
 #[macro_export]
 macro_rules! trace_limit {
+    (target: $target:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Trace, $max_per_time, $period, target: $target, $($arg)+)
+    };
     ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
         $crate::limit_impl!(log::Level::Trace, $max_per_time, $period, $($arg)+)
     };
@@ -401,6 +452,21 @@ mod tests {
         info_limit!(1, Duration::from_millis(1), "");
         debug_limit!(1, Duration::from_millis(1), "");
         trace_limit!(1, Duration::from_millis(1), "");
+    }
+
+    #[test]
+    fn target_parameter_works() {
+        error_limit!(target: "custom_target", 1, Duration::from_millis(1), "");
+        warn_limit!(target: "custom_target", 1, Duration::from_millis(1), "");
+        info_limit!(target: "custom_target", 1, Duration::from_millis(1), "");
+        debug_limit!(target: "custom_target", 1, Duration::from_millis(1), "");
+        trace_limit!(target: "custom_target", 1, Duration::from_millis(1), "");
+
+        error_limit_global!(target: "custom_target", 1, Duration::from_millis(1), "");
+        warn_limit_global!(target: "custom_target", 1, Duration::from_millis(1), "");
+        info_limit_global!(target: "custom_target", 1, Duration::from_millis(1), "");
+        debug_limit_global!(target: "custom_target", 1, Duration::from_millis(1), "");
+        trace_limit_global!(target: "custom_target", 1, Duration::from_millis(1), "");
     }
 
     #[test]
