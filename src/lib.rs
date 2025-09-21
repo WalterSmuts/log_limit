@@ -401,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn sync_spamming_does_not_work_sync() {
+    fn sync_spamming_does_not_work() {
         spamming_does_not_work(|| {
             let start = Box::new(Instant::now());
             let start = Box::leak(start);
