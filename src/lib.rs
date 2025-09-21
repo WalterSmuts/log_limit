@@ -443,4 +443,30 @@ mod tests {
         debug_limit!(1, Duration::from_millis(1), "");
         trace_limit!(1, Duration::from_millis(1), "");
     }
+
+    #[test]
+    #[should_panic]
+    fn max_per_time_longer_than_period_overflow() {
+        crate::testing_logger::setup();
+        fn log_function() {
+            info_limit!(3, Duration::from_millis(10), "");
+        }
+
+        // Trigger threshold
+        log_function();
+        log_function();
+        log_function();
+        log_function();
+
+        // Reset after period was reached and record timestamp
+        thread::sleep(Duration::from_millis(11));
+        log_function();
+
+        // Get to just one log before hitting the threshold
+
+        // Ensure time delta is longer than period
+        thread::sleep(Duration::from_millis(11));
+        log_function();
+        log_function();
+    }
 }
