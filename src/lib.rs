@@ -93,7 +93,7 @@ impl SynchronisedRateLimiter {
             #[cfg(feature = "warning-messages")]
             if count == max_per_time {
                 log::warn!(
-                    "Hit logging threshold! Starting to ignore the previous log for more than {:?}",
+                    "Hit logging threshold! Starting to ignore the previous log for less than {:?}",
                     period
                 );
             }
