@@ -67,7 +67,6 @@ for i in 0..10 {
 
 ### TODO:
 * Do some benchmarking and optimization
-* Address all in-code TODO's.
 * Figure out why my macro API looks different to the logging one? What is the target?
 * Figure out the right API
 

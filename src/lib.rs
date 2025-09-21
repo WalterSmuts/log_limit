@@ -119,150 +119,107 @@ impl SynchronisedRateLimiter {
     }
 }
 
-// TODO: Write a macro to dedup this
+// Helper macro to reduce duplication in global limit macros
+#[doc(hidden)]
 #[macro_export]
-macro_rules! error_limit_global {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+macro_rules! global_limit_impl {
+    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
         static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Error, $($arg)+));
+        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!($level, $($arg)+));
     }};
+}
+
+#[macro_export]
+macro_rules! error_limit_global {
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Error, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! warn_limit_global {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::SynchronisedRateLimiter;
-        use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Warn, $($arg)+));
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Warn, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! info_limit_global {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::SynchronisedRateLimiter;
-        use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Info, $($arg)+));
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Info, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! debug_limit_global {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::SynchronisedRateLimiter;
-        use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Debug, $($arg)+));
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Debug, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! trace_limit_global {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::SynchronisedRateLimiter;
-        use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(log::Level::Trace, $($arg)+));
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!(log::Level::Trace, $max_per_time, $period, $($arg)+)
+    };
+}
+
+// Helper macro to reduce duplication in thread-local limit macros
+#[doc(hidden)]
+#[macro_export]
+macro_rules! limit_impl {
+    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+        use $crate::RateLimiter;
+        use std::cell::RefCell;
+        use std::thread_local;
+
+        thread_local! {
+            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
+        }
+
+        RATE_LIMITER.with(|rate_limiter| {
+            rate_limiter
+                .borrow_mut()
+                .log_maybe($period, $max_per_time, || log::log!($level, $($arg)+))
+        });
     }};
 }
 
 #[macro_export]
 macro_rules! error_limit {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        use std::cell::RefCell;
-        use std::thread_local;
-
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
-
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(log::Level::Error, $($arg)+))
-        });
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Error, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! warn_limit {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        use std::cell::RefCell;
-        use std::thread_local;
-
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
-
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(log::Level::Warn, $($arg)+))
-        });
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Warn, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! info_limit {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        use std::cell::RefCell;
-        use std::thread_local;
-
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
-
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(log::Level::Info, $($arg)+))
-        });
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Info, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! debug_limit {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        use std::cell::RefCell;
-        use std::thread_local;
-
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
-
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(log::Level::Debug, $($arg)+))
-        });
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Debug, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
 macro_rules! trace_limit {
-    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {{
-        use $crate::RateLimiter;
-        use std::cell::RefCell;
-        use std::thread_local;
-
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
-
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(log::Level::Trace, $($arg)+))
-        });
-    }};
+    ($max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!(log::Level::Trace, $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[cfg(test)]
