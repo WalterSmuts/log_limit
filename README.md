@@ -67,8 +67,6 @@ for i in 0..10 {
 
 ### TODO:
 * Do some benchmarking and optimization
-* Figure out why my macro API looks different to the logging one? What is the target?
-* Figure out the right API
 
 [log]: https://docs.rs/log/latest/log/
 [thread_local]: https://doc.rust-lang.org/std/macro.thread_local.htmlhttps://doc.rust-lang.org/std/macro.thread_local.html
