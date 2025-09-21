@@ -14,6 +14,7 @@ mod testing_logger;
 pub struct RateLimiter {
     count: usize,
     timestamp: Instant,
+    logged_timeout: bool,
 }
 
 impl Default for RateLimiter {
@@ -27,6 +28,7 @@ impl RateLimiter {
         Self {
             count: 0,
             timestamp: Instant::now(),
+            logged_timeout: false,
         }
     }
 
@@ -40,11 +42,12 @@ impl RateLimiter {
             self.count += 1;
 
             #[cfg(feature = "warning-messages")]
-            if self.count == max_per_time {
+            if self.count == max_per_time && period >= calculated_duration {
                 log::warn!(
                     "Hit logging threshold! Starting to ignore the previous log for {:?}",
                     period - calculated_duration
                 );
+                self.logged_timeout = true;
             }
         } else {
             let calculated_duration = now.duration_since(self.timestamp);
@@ -52,12 +55,13 @@ impl RateLimiter {
                 #[cfg(feature = "warning-messages")]
                 let filtered_log_count = self.count - max_per_time;
                 #[cfg(feature = "warning-messages")]
-                if filtered_log_count > 0 {
+                if self.logged_timeout {
                     log::warn!(
                         "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
                         calculated_duration
                     );
                 }
+                self.logged_timeout = false;
                 log();
                 self.count = 1;
                 self.timestamp = now;
@@ -104,12 +108,10 @@ impl SynchronisedRateLimiter {
                 #[cfg(not(feature = "warning-messages"))]
                 let _filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
                 #[cfg(feature = "warning-messages")]
-                if filtered_log_count > 0 {
-                    log::warn!(
-                        "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
-                        calculated_duration
-                    );
-                }
+                log::warn!(
+                    "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
+                    calculated_duration
+                );
                 log();
                 *timestamp = now;
             }
@@ -445,7 +447,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn max_per_time_longer_than_period_overflow() {
         crate::testing_logger::setup();
         fn log_function() {
