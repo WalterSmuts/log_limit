@@ -44,7 +44,7 @@ impl RateLimiter {
             #[cfg(feature = "warning-messages")]
             if self.count == max_per_time && period >= calculated_duration {
                 log::warn!(
-                    "Hit logging threshold! Starting to ignore the previous log for {:?}",
+                    "Hit logging threshold! Starting to ignore the previous log for {:.2?}",
                     period - calculated_duration
                 );
                 self.logged_timeout = true;
@@ -57,7 +57,7 @@ impl RateLimiter {
                 #[cfg(feature = "warning-messages")]
                 if self.logged_timeout {
                     log::warn!(
-                        "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
+                        "Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
                         calculated_duration
                     );
                 }
@@ -93,7 +93,7 @@ impl SynchronisedRateLimiter {
             #[cfg(feature = "warning-messages")]
             if count == max_per_time {
                 log::warn!(
-                    "Hit logging threshold! Starting to ignore the previous log for less than {:?}",
+                    "Hit logging threshold! Starting to ignore the previous log for less than {:.2?}",
                     period
                 );
             }
@@ -109,7 +109,7 @@ impl SynchronisedRateLimiter {
                 let _filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
                 #[cfg(feature = "warning-messages")]
                 log::warn!(
-                    "Ignored {filtered_log_count} logs since {:?} ago. Starting to log again...",
+                    "Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
                     calculated_duration
                 );
                 log();
