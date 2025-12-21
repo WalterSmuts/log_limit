@@ -283,7 +283,6 @@ macro_rules! trace_limit {
 
 #[cfg(test)]
 mod tests {
-    use super::info_limit_global;
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;
