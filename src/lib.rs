@@ -126,14 +126,18 @@ macro_rules! global_limit_impl {
     ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+));
+        if log::log_enabled!($level) {
+            static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
+            RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+));
+        }
     }};
     ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
-        static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-        RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!($level, $($arg)+));
+        if log::log_enabled!($level) {
+            static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
+            RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!($level, $($arg)+));
+        }
     }};
 }
 
@@ -196,30 +200,34 @@ macro_rules! limit_impl {
         use std::cell::RefCell;
         use std::thread_local;
 
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
+        if log::log_enabled!($level) {
+            thread_local! {
+                static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
+            }
 
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+))
-        });
+            RATE_LIMITER.with(|rate_limiter| {
+                rate_limiter
+                    .borrow_mut()
+                    .log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+))
+            });
+        }
     }};
     ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
         use std::thread_local;
 
-        thread_local! {
-            static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
-        }
+        if log::log_enabled!($level) {
+            thread_local! {
+                static RATE_LIMITER: RefCell<RateLimiter> = RefCell::new(RateLimiter::new());
+            }
 
-        RATE_LIMITER.with(|rate_limiter| {
-            rate_limiter
-                .borrow_mut()
-                .log_maybe($period, $max_per_time, || log::log!($level, $($arg)+))
-        });
+            RATE_LIMITER.with(|rate_limiter| {
+                rate_limiter
+                    .borrow_mut()
+                    .log_maybe($period, $max_per_time, || log::log!($level, $($arg)+))
+            });
+        }
     }};
 }
 
@@ -495,7 +503,7 @@ mod tests {
     }
 
     #[test]
-    fn thread_local_suppressed_levels_are_not_ignored() {
+    fn thread_local_suppressed_levels_are_ignored() {
         crate::testing_logger::setup();
 
         // Restrict logging to Warn and above
@@ -505,17 +513,17 @@ mod tests {
             debug_limit!(
                 2,
                 Duration::from_secs(1),
-                "This debug message is not suppressed"
+                "This debug message is suppressed"
             );
         }
 
         crate::testing_logger::validate(|captured_logs| {
-            assert_ne!(captured_logs.len(), 0,);
+            assert_eq!(captured_logs.len(), 0,);
         });
     }
 
     #[test]
-    fn global_suppressed_levels_are_not_ignored() {
+    fn global_suppressed_levels_are_ignored() {
         crate::testing_logger::setup();
 
         // Restrict logging to Warn and above
@@ -525,12 +533,12 @@ mod tests {
             debug_limit_global!(
                 2,
                 Duration::from_secs(1),
-                "This global debug message is not suppressed"
+                "This global debug message is suppressed"
             );
         }
 
         crate::testing_logger::validate(|captured_logs| {
-            assert_ne!(captured_logs.len(), 0,);
+            assert_eq!(captured_logs.len(), 0,);
         });
     }
 }
