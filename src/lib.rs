@@ -493,4 +493,44 @@ mod tests {
         log_function();
         log_function();
     }
+
+    #[test]
+    fn thread_local_suppressed_levels_are_not_ignored() {
+        crate::testing_logger::setup();
+
+        // Restrict logging to Warn and above
+        log::set_max_level(log::LevelFilter::Warn);
+
+        for _ in 0..10 {
+            debug_limit!(
+                2,
+                Duration::from_secs(1),
+                "This debug message is not suppressed"
+            );
+        }
+
+        crate::testing_logger::validate(|captured_logs| {
+            assert_ne!(captured_logs.len(), 0,);
+        });
+    }
+
+    #[test]
+    fn global_suppressed_levels_are_not_ignored() {
+        crate::testing_logger::setup();
+
+        // Restrict logging to Warn and above
+        log::set_max_level(log::LevelFilter::Warn);
+
+        for _ in 0..10 {
+            debug_limit_global!(
+                2,
+                Duration::from_secs(1),
+                "This global debug message is not suppressed"
+            );
+        }
+
+        crate::testing_logger::validate(|captured_logs| {
+            assert_ne!(captured_logs.len(), 0,);
+        });
+    }
 }

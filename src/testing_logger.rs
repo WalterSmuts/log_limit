@@ -50,10 +50,9 @@ static TEST_LOGGER: TestingLogger = TestingLogger {};
 /// its thread local storage for a new test.
 pub fn setup() {
     FIRST_TEST.call_once(|| {
-        log::set_logger(&TEST_LOGGER)
-            .map(|()| log::set_max_level(LevelFilter::Trace))
-            .unwrap();
+        log::set_logger(&TEST_LOGGER).unwrap();
     });
+    log::set_max_level(LevelFilter::Trace);
     let mut records = LOG_RECORDS.lock().unwrap();
     records.truncate(0);
 }
