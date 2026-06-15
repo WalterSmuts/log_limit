@@ -65,6 +65,35 @@ for i in 0..10 {
 2024-08-24T10:49:29.207Z DEBUG [log_limit_user] Loop number: 9
 ```
 
+### Custom throttle/recovery messages
+By default the "Hit logging threshold!" / "Ignored N logs..." notices above are
+emitted via `log::warn!`. To customise the wording, level, or add structured
+fields, install a reporter once at startup with `set_reporter`:
+
+```rust
+use log_limit::{set_reporter, ThrottleNotice};
+
+set_reporter(|notice| match notice {
+    ThrottleNotice::Throttling { context, within } => {
+        log::warn!("[{context}] throttling for {within:.2?}");
+    }
+    ThrottleNotice::Resumed { context, dropped, elapsed } => {
+        log::warn!("[{context}] dropped {dropped} logs over {elapsed:.2?}");
+    }
+});
+```
+
+`context` defaults to the `file!():line!()` of the rate-limited log line. It
+can be overridden per call-site with a `context:` argument by calling the
+underlying `limit_impl!`/`global_limit_impl!` macros directly instead of the
+`[error|warn|info|debug|trace]_limit[_global]!` wrappers:
+
+```rust
+use std::time::Duration;
+
+log_limit::limit_impl!(log::Level::Info, context: format_args!("request-handler"), 3, Duration::from_millis(5), "Rate limit log for request");
+```
+
 ### TODO:
 * Do some benchmarking and optimization
 
