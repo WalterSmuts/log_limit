@@ -52,22 +52,22 @@ fn report(notice: &ThrottleNotice) {
     }
 }
 
-// Preserves the original warning wording. The `context` is available to a
-// custom reporter via `set_reporter`, but the default text ignores it.
 #[cfg(feature = "warning-messages")]
 fn default_report(notice: &ThrottleNotice) {
     match notice {
-        ThrottleNotice::Throttling { within, .. } => {
+        ThrottleNotice::Throttling { context, within } => {
             log::warn!(
-                "Hit logging threshold! Starting to ignore the previous log for {:.2?}",
+                "[{context}] Hit logging threshold! Starting to ignore the previous log for {:.2?}",
                 within
             );
         }
         ThrottleNotice::Resumed {
-            dropped, elapsed, ..
+            context,
+            dropped,
+            elapsed,
         } => {
             log::warn!(
-                "Ignored {dropped} logs since {:.2?} ago. Starting to log again...",
+                "[{context}] Ignored {dropped} logs since {:.2?} ago. Starting to log again...",
                 elapsed
             );
         }
@@ -429,11 +429,11 @@ mod tests {
                 assert_eq!(ignored_warnings.len(), 2);
                 assert_eq!(
                     "3",
-                    ignored_warnings[0].body.split_whitespace().nth(1).unwrap()
+                    ignored_warnings[0].body.split_whitespace().nth(2).unwrap()
                 );
                 assert_eq!(
                     "3",
-                    ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
+                    ignored_warnings[1].body.split_whitespace().nth(2).unwrap()
                 );
             }
         })
