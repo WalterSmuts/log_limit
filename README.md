@@ -50,19 +50,48 @@ for i in 0..10 {
 2024-08-24T10:49:29.198Z ERROR [log_limit_user] Rate limit log for 1
 2024-08-24T10:49:29.199Z DEBUG [log_limit_user] Loop number: 2
 2024-08-24T10:49:29.199Z ERROR [log_limit_user] Rate limit log for 2
-2024-08-24T10:49:29.199Z WARN  [log_limit] Hit logging threshold! Starting to ignore the previous log for 2.22ms
+2024-08-24T10:49:29.199Z WARN  [log_limit] [src/main.rs:40] Hit logging threshold! Starting to ignore the previous log for 2.22ms
 2024-08-24T10:49:29.200Z DEBUG [log_limit_user] Loop number: 3
 2024-08-24T10:49:29.201Z DEBUG [log_limit_user] Loop number: 4
 2024-08-24T10:49:29.203Z DEBUG [log_limit_user] Loop number: 5
-2024-08-24T10:49:29.203Z WARN  [log_limit] Ignored 2 logs since 5.52ms ago. Starting to log again...
+2024-08-24T10:49:29.203Z WARN  [log_limit] [src/main.rs:40] Ignored 2 logs since 5.52ms ago. Starting to log again...
 2024-08-24T10:49:29.203Z ERROR [log_limit_user] Rate limit log for 5
 2024-08-24T10:49:29.204Z DEBUG [log_limit_user] Loop number: 6
 2024-08-24T10:49:29.204Z ERROR [log_limit_user] Rate limit log for 6
 2024-08-24T10:49:29.205Z DEBUG [log_limit_user] Loop number: 7
 2024-08-24T10:49:29.205Z ERROR [log_limit_user] Rate limit log for 7
-2024-08-24T10:49:29.205Z WARN  [log_limit] Hit logging threshold! Starting to ignore the previous log for 2.18ms
+2024-08-24T10:49:29.205Z WARN  [log_limit] [src/main.rs:40] Hit logging threshold! Starting to ignore the previous log for 2.18ms
 2024-08-24T10:49:29.206Z DEBUG [log_limit_user] Loop number: 8
 2024-08-24T10:49:29.207Z DEBUG [log_limit_user] Loop number: 9
+```
+
+### Custom throttle/recovery messages
+By default the "Hit logging threshold!" / "Ignored N logs..." notices above are
+emitted via `log::warn!`. To customise the wording, level, or add structured
+fields, install a reporter once at startup with `set_reporter`:
+
+```rust
+use log_limit::{set_reporter, ThrottleNotice};
+
+set_reporter(|notice| match notice {
+    ThrottleNotice::Throttling { context, within } => {
+        log::warn!("[{context}] throttling for {within:.2?}");
+    }
+    ThrottleNotice::Resumed { context, dropped, elapsed } => {
+        log::warn!("[{context}] dropped {dropped} logs over {elapsed:.2?}");
+    }
+});
+```
+
+`context` defaults to the `file!():line!()` of the rate-limited log line. It
+can be overridden per call-site with a `context:` argument by calling the
+underlying `limit_impl!`/`global_limit_impl!` macros directly instead of the
+`[error|warn|info|debug|trace]_limit[_global]!` wrappers:
+
+```rust
+use std::time::Duration;
+
+log_limit::limit_impl!(log::Level::Info, context: format_args!("request-handler"), 3, Duration::from_millis(5), "Rate limit log for request");
 ```
 
 ### TODO:
