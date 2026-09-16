@@ -32,7 +32,14 @@ impl RateLimiter {
         }
     }
 
-    pub fn log_maybe(&mut self, period: Duration, max_per_time: usize, log: impl Fn()) {
+    #[cfg_attr(not(feature = "warning-messages"), allow(unused_variables))]
+    pub fn log_maybe(
+        &mut self,
+        period: Duration,
+        max_per_time: usize,
+        context: core::fmt::Arguments,
+        log: impl Fn(),
+    ) {
         let now = Instant::now();
 
         #[cfg(feature = "warning-messages")]
@@ -44,7 +51,7 @@ impl RateLimiter {
             #[cfg(feature = "warning-messages")]
             if self.count == max_per_time && period >= calculated_duration {
                 log::warn!(
-                    "Hit logging threshold! Starting to ignore the previous log for {:.2?}",
+                    "[{context}] Hit logging threshold! Starting to ignore the previous log for {:.2?}",
                     period - calculated_duration
                 );
                 self.logged_timeout = true;
@@ -57,7 +64,7 @@ impl RateLimiter {
                 #[cfg(feature = "warning-messages")]
                 if self.logged_timeout {
                     log::warn!(
-                        "Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
+                        "[{context}] Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
                         calculated_duration
                     );
                 }
@@ -86,14 +93,21 @@ impl SynchronisedRateLimiter {
         })
     }
 
-    pub fn log_maybe(&self, period: Duration, max_per_time: usize, log: impl Fn()) {
+    #[cfg_attr(not(feature = "warning-messages"), allow(unused_variables))]
+    pub fn log_maybe(
+        &self,
+        period: Duration,
+        max_per_time: usize,
+        context: core::fmt::Arguments,
+        log: impl Fn(),
+    ) {
         let count = self.count.fetch_add(1, Ordering::Relaxed) + 1;
         if count <= max_per_time {
             log();
             #[cfg(feature = "warning-messages")]
             if count == max_per_time {
                 log::warn!(
-                    "Hit logging threshold! Starting to ignore the previous log for less than {:.2?}",
+                    "[{context}] Hit logging threshold! Starting to ignore the previous log for less than {:.2?}",
                     period
                 );
             }
@@ -109,7 +123,7 @@ impl SynchronisedRateLimiter {
                 let _filtered_log_count = self.count.swap(1, Ordering::Relaxed) - max_per_time - 1;
                 #[cfg(feature = "warning-messages")]
                 log::warn!(
-                    "Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
+                    "[{context}] Ignored {filtered_log_count} logs since {:.2?} ago. Starting to log again...",
                     calculated_duration
                 );
                 log();
@@ -123,22 +137,28 @@ impl SynchronisedRateLimiter {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! global_limit_impl {
-    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
+    ($level:expr, context: $context:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
         if log::log_enabled!($level) {
             static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-            RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+));
+            RATE_LIMITER.log_maybe($period, $max_per_time, $context, || log::log!(target: $target, $level, $($arg)+));
         }
     }};
-    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+    ($level:expr, context: $context:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::SynchronisedRateLimiter;
         use std::sync::LazyLock;
         if log::log_enabled!($level) {
             static RATE_LIMITER: LazyLock<SynchronisedRateLimiter> = SynchronisedRateLimiter::new();
-            RATE_LIMITER.log_maybe($period, $max_per_time, || log::log!($level, $($arg)+));
+            RATE_LIMITER.log_maybe($period, $max_per_time, $context, || log::log!($level, $($arg)+));
         }
     }};
+    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!($level, context: format_args!("{}:{}", file!(), line!()), $max_per_time, $period, target: $target, $($arg)+)
+    };
+    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::global_limit_impl!($level, context: format_args!("{}:{}", file!(), line!()), $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
@@ -195,7 +215,7 @@ macro_rules! trace_limit_global {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! limit_impl {
-    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
+    ($level:expr, context: $context:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
         use std::thread_local;
@@ -208,11 +228,11 @@ macro_rules! limit_impl {
             RATE_LIMITER.with(|rate_limiter| {
                 rate_limiter
                     .borrow_mut()
-                    .log_maybe($period, $max_per_time, || log::log!(target: $target, $level, $($arg)+))
+                    .log_maybe($period, $max_per_time, $context, || log::log!(target: $target, $level, $($arg)+))
             });
         }
     }};
-    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
+    ($level:expr, context: $context:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {{
         use $crate::RateLimiter;
         use std::cell::RefCell;
         use std::thread_local;
@@ -225,10 +245,16 @@ macro_rules! limit_impl {
             RATE_LIMITER.with(|rate_limiter| {
                 rate_limiter
                     .borrow_mut()
-                    .log_maybe($period, $max_per_time, || log::log!($level, $($arg)+))
+                    .log_maybe($period, $max_per_time, $context, || log::log!($level, $($arg)+))
             });
         }
     }};
+    ($level:expr, $max_per_time:expr, $period:expr, target: $target:expr, $($arg:tt)+) => {
+        $crate::limit_impl!($level, context: format_args!("{}:{}", file!(), line!()), $max_per_time, $period, target: $target, $($arg)+)
+    };
+    ($level:expr, $max_per_time:expr, $period:expr, $($arg:tt)+) => {
+        $crate::limit_impl!($level, context: format_args!("{}:{}", file!(), line!()), $max_per_time, $period, $($arg)+)
+    };
 }
 
 #[macro_export]
@@ -337,11 +363,11 @@ mod tests {
                 assert_eq!(ignored_warnings.len(), 2);
                 assert_eq!(
                     "3",
-                    ignored_warnings[0].body.split_whitespace().nth(1).unwrap()
+                    ignored_warnings[0].body.split_whitespace().nth(2).unwrap()
                 );
                 assert_eq!(
                     "3",
-                    ignored_warnings[1].body.split_whitespace().nth(1).unwrap()
+                    ignored_warnings[1].body.split_whitespace().nth(2).unwrap()
                 );
             }
         })
